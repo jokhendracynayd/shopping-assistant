@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.api.v1 import shopping
-from app.utils.errors import APIError, to_error_dict, ErrorCode, create_api_error
+from app.utils.errors import APIError, to_error_dict, ErrorCode, Error
 from app.utils.security import require_api_key
 from fastapi import Depends
 from app.utils.logger import setup_logging, get_logger

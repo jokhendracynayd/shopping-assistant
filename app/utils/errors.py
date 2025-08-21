@@ -48,7 +48,7 @@ class APIError(Exception):
         self.numeric_code = numeric_code
 
 
-def create_api_error(code: ErrorCode, details: Optional[Any] = None, message: Optional[str] = None) -> APIError:
+def Error(code: ErrorCode, details: Optional[Any] = None, message: Optional[str] = None) -> APIError:
     """Factory to create an APIError using the registry defaults.
 
     The optional `message` overrides the default message in the registry.

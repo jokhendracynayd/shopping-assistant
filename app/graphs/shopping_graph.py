@@ -67,3 +67,62 @@ async def run_shopping_graph(question: str) -> Dict:
     return {"intent": intent, "result": result}
 
 
+
+
+
+
+# from langgraph.graph import StateGraph, END
+# from langgraph.prebuilt import ToolNode
+# from langchain.chains import ConversationalRetrievalChain
+# from langchain.memory import ConversationBufferMemory
+# from langchain_openai import ChatOpenAI
+
+# # Define LLM
+# llm = ChatOpenAI(model="gpt-4o")
+
+# # Memory for follow-up handling
+# memory = ConversationBufferMemory(return_messages=True)
+
+# # Define retriever (assume db is a Chroma instance)
+# retriever = db.as_retriever()
+
+# # Rephrase node: makes follow-up a standalone question
+# def rephrase(state):
+#     query = state["user_input"]
+#     history = memory.chat_memory.messages
+#     prompt = f"Rewrite the user query as a standalone question using history:\nHistory:{history}\nQuery:{query}"
+#     standalone = llm.predict(prompt)
+#     return {"standalone_query": standalone}
+
+# # Retrieval node
+# def retrieve(state):
+#     docs = retriever.get_relevant_documents(state["standalone_query"])
+#     return {"docs": docs}
+
+# # Answer node
+# def answer(state):
+#     context = "\n".join([d.page_content for d in state["docs"]])
+#     query = state["standalone_query"]
+#     response = llm.predict(f"Answer based on context:\n{context}\n\nQuestion: {query}")
+#     memory.chat_memory.add_user_message(query)
+#     memory.chat_memory.add_ai_message(response)
+#     return {"answer": response}
+
+# # Build graph
+# graph = StateGraph()
+# graph.add_node("rephrase", rephrase)
+# graph.add_node("retrieve", retrieve)
+# graph.add_node("answer", answer)
+
+# graph.set_entry_point("rephrase")
+# graph.add_edge("rephrase", "retrieve")
+# graph.add_edge("retrieve", "answer")
+# graph.add_edge("answer", END)
+
+# app = graph.compile()
+
+# # Run conversation
+# state = {"user_input": "What about electronics?"}
+# result = app.invoke(state)
+# print(result["answer"])
+
