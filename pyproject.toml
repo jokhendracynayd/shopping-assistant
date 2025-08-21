@@ -1,0 +1,20 @@
+[project]
+name = "shopping-assistant"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.116.1",
+    "git-filter-repo>=2.47.0",
+    "langchain>=0.3.27",
+    "langchain-anthropic>=0.3.19",
+    "langchain-groq>=0.3.7",
+    "langchain-openai>=0.3.30",
+    "langgraph>=0.6.6",
+    "pydantic>=2.11.7",
+    "pydantic-settings>=2.10.1",
+    "python-dotenv>=1.1.1",
+    "redis>=6.4.0",
+    "uvicorn[standard]>=0.35.0",
+]
