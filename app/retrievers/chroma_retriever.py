@@ -1,6 +1,10 @@
-from typing import Any, Optional, List, Dict, Iterable, Union, Sequence
 import threading
-from app.retrievers.base import BaseRetriever, RetrieverConfig
+from collections.abc import Iterable
+from collections.abc import Sequence
+from typing import Any
+
+from app.retrievers.base import BaseRetriever
+from app.retrievers.base import RetrieverConfig
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -14,31 +18,31 @@ class ChromaRetriever(BaseRetriever):
     def __init__(
         self,
         collection_name: str,
-        client: Optional[Any] = None,
-        embedding_fn: Optional[Any] = None,
-        persist_directory: Optional[str] = None,
-        config: Optional[RetrieverConfig] = None,
+        client: Any | None = None,
+        embedding_fn: Any | None = None,
+        persist_directory: str | None = None,
+        config: RetrieverConfig | None = None,
     ) -> None:
         super().__init__(config)
-        
+
         self.collection_name = collection_name
         self.embedding_fn = embedding_fn
         self.persist_directory = persist_directory
         self._collection = None
         self._lock = threading.RLock()
-        
+
         self._client = self._initialize_client(client)
         self._collection = self._initialize_collection()
 
-    def _initialize_client(self, client: Optional[Any]) -> Any:
+    def _initialize_client(self, client: Any | None) -> Any:
         """Initialize ChromaDB client with error handling."""
         if client is not None:
             return client
-            
+
         try:
             import chromadb
             from chromadb.config import Settings
-            
+
             # Configure with persistence if directory provided
             if self.persist_directory:
                 settings = Settings(
@@ -46,9 +50,8 @@ class ChromaRetriever(BaseRetriever):
                     anonymized_telemetry=False,
                 )
                 return chromadb.PersistentClient(path=self.persist_directory, settings=settings)
-            else:
-                return chromadb.EphemeralClient()
-                
+            return chromadb.EphemeralClient()
+
         except ImportError as e:
             logger.error("ChromaDB not installed. Install with: pip install chromadb")
             raise ImportError("ChromaDB is required but not installed") from e
@@ -73,7 +76,7 @@ class ChromaRetriever(BaseRetriever):
                     logger.error(f"Failed to initialize collection '{self.collection_name}': {e}")
                     raise
 
-    def _add_batch(self, batch: List[Dict[str, Any]]) -> None:
+    def _add_batch(self, batch: list[dict[str, Any]]) -> None:
         """Add a batch of documents to ChromaDB."""
         if not batch:
             return
@@ -97,7 +100,7 @@ class ChromaRetriever(BaseRetriever):
                 "documents": texts,
                 "metadatas": metadatas,
             }
-            
+
             # Only include embeddings if we have them for all documents
             if len(embeddings) == len(batch):
                 kwargs["embeddings"] = embeddings
@@ -114,32 +117,32 @@ class ChromaRetriever(BaseRetriever):
             else:
                 raise RuntimeError("ChromaDB collection doesn't support add/upsert operations")
 
-    def add_documents(self, documents: Sequence[Dict[str, Any]]) -> None:
+    def add_documents(self, documents: Sequence[dict[str, Any]]) -> None:
         """Add documents in batches with error handling."""
         if not documents:
             return
-            
+
         # Validate documents
         for doc in documents:
             if "id" not in doc:
                 raise ValueError("All documents must have an 'id' field")
-        
+
         self._batch_process(
-            list(documents), 
+            list(documents),
             self._add_batch,
-            f"Adding documents to ChromaDB collection '{self.collection_name}'"
+            f"Adding documents to ChromaDB collection '{self.collection_name}'",
         )
 
     def similarity_search(
-        self, query: Union[str, Sequence[float]], k: int = 4, **kwargs: Any
-    ) -> List[Dict[str, Any]]:
+        self, query: str | Sequence[float], k: int = 4, **kwargs: Any
+    ) -> list[dict[str, Any]]:
         """Perform similarity search with enhanced error handling."""
         if k <= 0:
             return []
 
         query_embedding = None
         query_texts = None
-        
+
         if isinstance(query, str):
             query_texts = [query]
             if self.embedding_fn is not None:
@@ -150,14 +153,14 @@ class ChromaRetriever(BaseRetriever):
         def _search():
             with self._lock:
                 params = {"n_results": k, **kwargs}
-                
+
                 if query_embedding is not None:
                     params["query_embeddings"] = query_embedding
                 if query_texts is not None:
                     params["query_texts"] = query_texts
 
                 response = self._collection.query(**params)
-                
+
                 # Process response
                 results = []
                 ids = response.get("ids", [[]])
@@ -169,31 +172,40 @@ class ChromaRetriever(BaseRetriever):
                     for j, doc_id in enumerate(id_list):
                         result = {
                             "id": doc_id,
-                            "score": 1.0 - (distances[i][j] if i < len(distances) and j < len(distances[i]) else 0.0),
-                            "metadata": metadatas[i][j] if i < len(metadatas) and j < len(metadatas[i]) else {},
+                            "score": 1.0
+                            - (
+                                distances[i][j]
+                                if i < len(distances) and j < len(distances[i])
+                                else 0.0
+                            ),
+                            "metadata": (
+                                metadatas[i][j]
+                                if i < len(metadatas) and j < len(metadatas[i])
+                                else {}
+                            ),
                         }
                         if i < len(documents) and j < len(documents[i]):
                             result["text"] = documents[i][j]
                         results.append(result)
-                
+
                 return results
 
         return self._retry_on_failure(_search)
 
-    def get(self, doc_id: str) -> Optional[Dict[str, Any]]:
+    def get(self, doc_id: str) -> dict[str, Any] | None:
         """Get document by ID with error handling."""
+
         def _get():
             with self._lock:
                 try:
                     response = self._collection.get(
-                        ids=[doc_id],
-                        include=["metadatas", "documents"]
+                        ids=[doc_id], include=["metadatas", "documents"]
                     )
-                    
+
                     ids = response.get("ids", [])
                     metadatas = response.get("metadatas", [])
                     documents = response.get("documents", [])
-                    
+
                     if ids and ids[0]:
                         result = {
                             "id": ids[0],
@@ -202,9 +214,9 @@ class ChromaRetriever(BaseRetriever):
                         if documents:
                             result["text"] = documents[0]
                         return result
-                    
+
                     return None
-                except Exception as e:
+                except Exception:
                     # logger.warning(f"Failed to get document {doc_id}: {e}")
                     return None
 
@@ -223,11 +235,12 @@ class ChromaRetriever(BaseRetriever):
         self._batch_process(
             ids_list,
             _delete_batch,
-            f"Deleting documents from ChromaDB collection '{self.collection_name}'"
+            f"Deleting documents from ChromaDB collection '{self.collection_name}'",
         )
 
     def persist(self) -> None:
         """Persist ChromaDB data."""
+
         def _persist():
             if hasattr(self._client, "persist"):
                 self._client.persist()
@@ -239,11 +252,11 @@ class ChromaRetriever(BaseRetriever):
         with self._lock:
             if self._closed:
                 return
-                
+
             try:
                 if hasattr(self._client, "close"):
                     self._client.close()
-            except Exception as e:
+            except Exception:
                 # logger.warning(f"Error closing ChromaDB client: {e}")
                 pass
             finally:

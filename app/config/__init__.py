@@ -1,5 +1,4 @@
-from .config import settings, get_allowed_api_keys
+from .config import get_allowed_api_keys
+from .config import settings
 
-__all__ = ["settings", "get_allowed_api_keys"]
-
-
+__all__ = ["get_allowed_api_keys", "settings"]

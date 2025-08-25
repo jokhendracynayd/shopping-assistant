@@ -4,18 +4,19 @@ Creates console + rotating file handlers and provides helpers to get named
 loggers. Info and error logs are separated into different files under
 `app/log/`.
 """
-import logging
+
 import json
+import logging
 import os
+from datetime import UTC
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
-from typing import Any
 
 
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         payload = {
-            "timestamp": datetime.utcfromtimestamp(record.created).isoformat() + "Z",
+            "timestamp": datetime.fromtimestamp(record.created, UTC).isoformat(),
             "level": record.levelname,
             "name": record.name,
             "message": record.getMessage(),
@@ -37,7 +38,9 @@ class MaxLevelFilter(logging.Filter):
         return record.levelno <= self.max_level
 
 
-def setup_logging(enabled: bool = True, level: int = logging.INFO, log_dir: str = "app/log") -> None:
+def setup_logging(
+    enabled: bool = True, level: int = logging.INFO, log_dir: str = "app/log"
+) -> None:
     """Configure root logger with console and file handlers.
 
     - Console: all logs (INFO+)
@@ -72,7 +75,9 @@ def setup_logging(enabled: bool = True, level: int = logging.INFO, log_dir: str 
 
     # Info file (INFO and WARNING)
     info_path = os.path.join(log_dir, "info.log")
-    info_handler = RotatingFileHandler(info_path, maxBytes=5 * 1024 * 1024, backupCount=5, encoding="utf8")
+    info_handler = RotatingFileHandler(
+        info_path, maxBytes=5 * 1024 * 1024, backupCount=5, encoding="utf8"
+    )
     info_handler.setLevel(logging.INFO)
     info_handler.addFilter(MaxLevelFilter(logging.WARNING))
     info_handler.setFormatter(formatter)
@@ -80,7 +85,9 @@ def setup_logging(enabled: bool = True, level: int = logging.INFO, log_dir: str 
 
     # Error file (ERROR+)
     error_path = os.path.join(log_dir, "error.log")
-    error_handler = RotatingFileHandler(error_path, maxBytes=5 * 1024 * 1024, backupCount=10, encoding="utf8")
+    error_handler = RotatingFileHandler(
+        error_path, maxBytes=5 * 1024 * 1024, backupCount=10, encoding="utf8"
+    )
     error_handler.setLevel(logging.ERROR)
     error_handler.setFormatter(formatter)
     root.addHandler(error_handler)
@@ -90,5 +97,3 @@ def setup_logging(enabled: bool = True, level: int = logging.INFO, log_dir: str 
 
 def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(name)
-
-

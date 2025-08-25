@@ -1,6 +1,7 @@
+from abc import ABC
+from abc import abstractmethod
+from typing import Any
 
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Type, Union
 from pydantic import BaseModel
 
 
@@ -9,6 +10,7 @@ class BaseLLMClient(ABC):
     Abstract base class for LLM clients.
     All providers (OpenAI, Groq, Anthropic) must implement this interface.
     """
+
     def __init__(self, api_key: str | None, model_name: str, temperature: float = 0.0):
         """Initialize client. Do NOT raise on missing API key here to allow tests/mocks.
 
@@ -18,38 +20,28 @@ class BaseLLMClient(ABC):
         self.api_key = api_key
         self.model_name = model_name
         self.temperature = temperature
-        
+
     @abstractmethod
     def get_model(self, **kwargs) -> Any:
         """Return an initialized LLM model instance"""
-        pass
 
     @abstractmethod
     def generate(self, prompt: str, **kwargs) -> str:
         """Run text generation given a prompt (synchronous)"""
-        pass
 
     @abstractmethod
     async def agenerate(self, prompt: str, **kwargs) -> str:
         """Run text generation asynchronously"""
-        pass
 
     @abstractmethod
-    def chat(self, messages: List[Dict[str, str]], **kwargs) -> str:
+    def chat(self, messages: list[dict[str, str]], **kwargs) -> str:
         """Run a chat-based generation with conversation history"""
-        pass
 
     @abstractmethod
-    async def achat(self, messages: List[Dict[str, str]], **kwargs) -> str:
+    async def achat(self, messages: list[dict[str, str]], **kwargs) -> str:
         """Async chat interface"""
-        pass
 
-    def generate_structured(
-        self,
-        prompt: str,
-        schema: Type[BaseModel],
-        **kwargs
-    ) -> BaseModel:
+    def generate_structured(self, prompt: str, schema: type[BaseModel], **kwargs) -> BaseModel:
         """
         Run structured output generation based on a Pydantic schema.
         Providers with JSON-mode (like OpenAI/Anthropic) should override.
@@ -67,4 +59,6 @@ class BaseLLMClient(ABC):
         Call this during application startup to fail fast on missing credentials.
         """
         if not self.is_configured():
-            raise ValueError(f"LLM client {self.__class__.__name__} is not configured with an API key")
+            raise ValueError(
+                f"LLM client {self.__class__.__name__} is not configured with an API key"
+            )

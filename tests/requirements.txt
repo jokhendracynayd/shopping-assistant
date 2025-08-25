@@ -1,0 +1,22 @@
+# Testing dependencies for the shopping assistant application
+
+# Core testing framework
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+
+# FastAPI testing
+httpx>=0.24.0
+
+# Mocking and test utilities
+pytest-mock>=3.11.0
+faker>=19.0.0
+
+# Test data generation
+factory-boy>=3.3.0
+
+# Performance testing (optional)
+pytest-benchmark>=4.0.0
+
+# Test reporting
+pytest-html>=3.2.0

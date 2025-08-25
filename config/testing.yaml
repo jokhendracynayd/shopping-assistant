@@ -1,0 +1,62 @@
+# Testing environment configuration
+# Optimized for automated testing and CI/CD
+
+# Application settings
+debug: true
+environment: "testing"
+
+# Logging
+logging_enabled: false  # Disabled for faster tests
+log_level: "WARNING"
+
+# Security
+require_api_key: false  # Disabled for easier testing
+rate_limiting_enabled: false  # Disabled for testing
+
+# Database connections (use test databases)
+redis_url: "redis://localhost:6379/15"  # Use test database
+redis_max_connections: 5
+
+# External services (use mocks)
+weaviate_url: "http://localhost:8080"  # Test instance
+weaviate_api_key: ""
+
+# LLM settings
+default_temperature: 0.0  # Deterministic for testing
+llm_timeout_seconds: 10  # Shorter timeout for faster tests
+
+# Rate limiting (disabled)
+rate_limit_requests_per_minute: 10000
+rate_limit_requests_per_hour: 100000
+
+# Timeouts (short for faster tests)
+api_request_timeout_seconds: 10
+health_check_timeout_seconds: 2
+weaviate_timeout_seconds: 5
+
+# Cache (short-lived for testing)
+cache_ttl_seconds: 10
+
+# CORS (permissive for testing)
+cors_origins:
+  - "*"  # Allow all origins in testing
+
+# Testing-specific features
+enable_debug_endpoints: true
+enable_mock_services: true  # Use mocks instead of real services
+auto_reload: false
+
+# Monitoring (minimal for testing)
+enable_metrics: false
+enable_tracing: false
+enable_profiling: false
+
+# Security headers (relaxed for testing)
+enable_security_headers: false
+enable_request_logging: false
+enable_audit_logging: false
+
+# Test-specific settings
+use_test_database: true
+mock_external_apis: true
+fast_startup: true

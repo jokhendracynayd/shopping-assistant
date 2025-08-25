@@ -1,0 +1,53 @@
+# Production environment configuration
+# Security-focused settings for production deployment
+
+# Application settings
+debug: false
+environment: "production"
+
+# Logging
+logging_enabled: true
+log_level: "INFO"
+
+# Security
+require_api_key: true
+rate_limiting_enabled: true
+
+# Database connections
+redis_max_connections: 20
+
+# LLM settings
+default_temperature: 0.0  # Deterministic responses in production
+llm_timeout_seconds: 30
+
+# Rate limiting (strict for production)
+rate_limit_requests_per_minute: 60
+rate_limit_requests_per_hour: 1000
+
+# Timeouts
+api_request_timeout_seconds: 30
+health_check_timeout_seconds: 5
+weaviate_timeout_seconds: 10
+
+# Cache
+cache_ttl_seconds: 300  # 5 minutes
+
+# CORS (restrictive for production)
+cors_origins:
+  - "https://yourdomain.com"
+  - "https://app.yourdomain.com"
+
+# Production-specific features
+enable_debug_endpoints: false
+enable_mock_services: false
+auto_reload: false
+
+# Monitoring
+enable_metrics: true
+enable_tracing: true
+enable_profiling: false
+
+# Security headers
+enable_security_headers: true
+enable_request_logging: true
+enable_audit_logging: true

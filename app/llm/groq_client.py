@@ -1,12 +1,11 @@
-
-from typing import List, Dict
-import os
 import logging
+import os
 
 from langchain_groq import ChatGroq  # Groq exposes OpenAI-compatible API
-from .base import BaseLLMClient
+
 from app.config import settings
 
+from .base import BaseLLMClient
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +15,9 @@ class GroqClient(BaseLLMClient):
     Wrapper for Groq LLMs (OpenAI-compatible).
     """
 
-    def __init__(self, model_name: str = "llama3-8b-8192", temperature: float = settings.default_temperature):
+    def __init__(
+        self, model_name: str = "llama3-8b-8192", temperature: float = settings.default_temperature
+    ):
         # Ensure GROQ_API_KEY is available in environment for the Groq SDK
         api_key = settings.GROQ_API_KEY
         if api_key:
@@ -32,17 +33,61 @@ class GroqClient(BaseLLMClient):
         return ChatGroq(model=self.model_name, temperature=self.temperature, **kwargs)
 
     def generate(self, prompt: str, **kwargs) -> str:
-        response = self.llm.invoke(prompt, **kwargs)
-        return response.content
+        import asyncio
+
+        timeout = kwargs.pop("timeout", settings.llm_timeout_seconds)
+
+        try:
+            response = asyncio.wait_for(self.llm.ainvoke(prompt, **kwargs), timeout=timeout)
+            # Run in event loop if available, otherwise create new one
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # If we're in an async context, this shouldn't be called
+                    raise RuntimeError("Use agenerate in async context")
+                result = loop.run_until_complete(response)
+            except RuntimeError:
+                result = asyncio.run(response)
+            return result.content
+        except TimeoutError:
+            raise TimeoutError(f"LLM request timed out after {timeout} seconds")
 
     async def agenerate(self, prompt: str, **kwargs) -> str:
-        response = await self.llm.ainvoke(prompt, **kwargs)
-        return response.content
+        import asyncio
 
-    def chat(self, messages: List[Dict[str, str]], **kwargs) -> str:
-        response = self.llm.invoke(messages, **kwargs)
-        return response.content
+        timeout = kwargs.pop("timeout", settings.llm_timeout_seconds)
 
-    async def achat(self, messages: List[Dict[str, str]], **kwargs) -> str:
-        response = await self.llm.ainvoke(messages, **kwargs)
-        return response.content
+        try:
+            response = await asyncio.wait_for(self.llm.ainvoke(prompt, **kwargs), timeout=timeout)
+            return response.content
+        except TimeoutError:
+            raise TimeoutError(f"LLM request timed out after {timeout} seconds")
+
+    def chat(self, messages: list[dict[str, str]], **kwargs) -> str:
+        import asyncio
+
+        timeout = kwargs.pop("timeout", settings.llm_timeout_seconds)
+
+        try:
+            response = asyncio.wait_for(self.llm.ainvoke(messages, **kwargs), timeout=timeout)
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    raise RuntimeError("Use achat in async context")
+                result = loop.run_until_complete(response)
+            except RuntimeError:
+                result = asyncio.run(response)
+            return result.content
+        except TimeoutError:
+            raise TimeoutError(f"LLM request timed out after {timeout} seconds")
+
+    async def achat(self, messages: list[dict[str, str]], **kwargs) -> str:
+        import asyncio
+
+        timeout = kwargs.pop("timeout", settings.llm_timeout_seconds)
+
+        try:
+            response = await asyncio.wait_for(self.llm.ainvoke(messages, **kwargs), timeout=timeout)
+            return response.content
+        except TimeoutError:
+            raise TimeoutError(f"LLM request timed out after {timeout} seconds")

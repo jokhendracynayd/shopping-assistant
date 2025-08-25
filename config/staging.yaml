@@ -1,0 +1,54 @@
+# Staging environment configuration
+# Production-like settings for staging/testing
+
+# Application settings
+debug: false
+environment: "staging"
+
+# Logging
+logging_enabled: true
+log_level: "INFO"
+
+# Security
+require_api_key: true
+rate_limiting_enabled: true
+
+# Database connections
+redis_max_connections: 10
+
+# LLM settings
+default_temperature: 0.0
+llm_timeout_seconds: 30
+
+# Rate limiting (moderate for staging)
+rate_limit_requests_per_minute: 120
+rate_limit_requests_per_hour: 2000
+
+# Timeouts
+api_request_timeout_seconds: 45
+health_check_timeout_seconds: 10
+weaviate_timeout_seconds: 15
+
+# Cache
+cache_ttl_seconds: 300
+
+# CORS (permissive for staging)
+cors_origins:
+  - "https://staging.yourdomain.com"
+  - "https://test.yourdomain.com"
+  - "http://localhost:3000"  # For local testing against staging
+
+# Staging-specific features
+enable_debug_endpoints: true  # Enabled for debugging staging issues
+enable_mock_services: false
+auto_reload: false
+
+# Monitoring
+enable_metrics: true
+enable_tracing: true
+enable_profiling: true  # Enabled for performance testing
+
+# Security headers
+enable_security_headers: true
+enable_request_logging: true
+enable_audit_logging: true

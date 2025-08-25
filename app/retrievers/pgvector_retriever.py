@@ -1,9 +1,13 @@
-from typing import Any, Optional, List, Dict, Iterable, Union, Sequence
-import threading
-from app.retrievers.base import BaseRetriever, RetrieverConfig
-from app.utils.logger import get_logger
-from contextlib import contextmanager
 import json
+import threading
+from collections.abc import Iterable
+from collections.abc import Sequence
+from contextlib import contextmanager
+from typing import Any
+
+from app.retrievers.base import BaseRetriever
+from app.retrievers.base import RetrieverConfig
+from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -22,11 +26,11 @@ class PgVectorRetriever(BaseRetriever):
         metadata_column: str = "metadata",
         id_column: str = "id",
         embedding_dim: int = 1536,
-        embedding_fn: Optional[Any] = None,
-        config: Optional[RetrieverConfig] = None,
+        embedding_fn: Any | None = None,
+        config: RetrieverConfig | None = None,
     ) -> None:
         super().__init__(config)
-        
+
         self.connection_string = connection_string
         self.table_name = table_name
         self.embedding_column = embedding_column
@@ -37,7 +41,7 @@ class PgVectorRetriever(BaseRetriever):
         self.embedding_fn = embedding_fn
         self._pool = None
         self._lock = threading.RLock()
-        
+
         self._initialize_pool()
         self._ensure_table_exists()
 
@@ -46,11 +50,12 @@ class PgVectorRetriever(BaseRetriever):
         try:
             import psycopg2
             from psycopg2 import pool
-            
+
             self._pool = pool.ThreadedConnectionPool(
-                1, self.config.connection_pool_size,
+                1,
+                self.config.connection_pool_size,
                 self.connection_string,
-                cursor_factory=psycopg2.extras.RealDictCursor
+                cursor_factory=psycopg2.extras.RealDictCursor,
             )
         except ImportError as e:
             logger.error("psycopg2 not installed. Install with: pip install psycopg2-binary")
@@ -84,7 +89,7 @@ class PgVectorRetriever(BaseRetriever):
         ON {self.table_name} USING ivfflat ({self.embedding_column} vector_cosine_ops)
         WITH (lists = 100);
         """
-        
+
         def _create():
             with self._get_connection() as conn:
                 with conn.cursor() as cur:
@@ -92,10 +97,10 @@ class PgVectorRetriever(BaseRetriever):
                     cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
                     cur.execute(create_table_sql)
                     conn.commit()
-        
+
         self._retry_on_failure(_create)
 
-    def _add_batch(self, batch: List[Dict[str, Any]]) -> None:
+    def _add_batch(self, batch: list[dict[str, Any]]) -> None:
         """Add a batch of documents to PostgreSQL."""
         if not batch:
             return
@@ -108,16 +113,16 @@ class PgVectorRetriever(BaseRetriever):
                         doc_id = doc["id"]
                         text = doc.get("text", "")
                         metadata = json.dumps(doc.get("metadata", {}))
-                        
+
                         embedding = doc.get("embedding")
                         if embedding is None and self.embedding_fn is not None:
                             embedding = self.embedding_fn(text)
-                        
+
                         if embedding is None:
                             raise ValueError(f"No embedding found for document {doc_id}")
-                        
+
                         values.append((doc_id, text, metadata, embedding))
-                    
+
                     # Use ON CONFLICT for upsert behavior
                     insert_sql = f"""
                     INSERT INTO {self.table_name} 
@@ -128,8 +133,9 @@ class PgVectorRetriever(BaseRetriever):
                         {self.metadata_column} = EXCLUDED.{self.metadata_column},
                         {self.embedding_column} = EXCLUDED.{self.embedding_column};
                     """
-                    
+
                     import psycopg2.extras
+
                     psycopg2.extras.execute_values(
                         cur, insert_sql, values, template=None, page_size=1000
                     )
@@ -137,25 +143,25 @@ class PgVectorRetriever(BaseRetriever):
 
         self._retry_on_failure(_insert_batch)
 
-    def add_documents(self, documents: Sequence[Dict[str, Any]]) -> None:
+    def add_documents(self, documents: Sequence[dict[str, Any]]) -> None:
         """Add documents in batches."""
         if not documents:
             return
-            
+
         # Validate documents
         for doc in documents:
             if "id" not in doc:
                 raise ValueError("All documents must have an 'id' field")
-        
+
         self._batch_process(
             list(documents),
             self._add_batch,
-            f"Adding documents to pgVector table '{self.table_name}'"
+            f"Adding documents to pgVector table '{self.table_name}'",
         )
 
     def similarity_search(
-        self, query: Union[str, Sequence[float]], k: int = 4, **kwargs: Any
-    ) -> List[Dict[str, Any]]:
+        self, query: str | Sequence[float], k: int = 4, **kwargs: Any
+    ) -> list[dict[str, Any]]:
         """Perform similarity search using pgvector."""
         if k <= 0:
             return []
@@ -182,10 +188,10 @@ class PgVectorRetriever(BaseRetriever):
                     ORDER BY {self.embedding_column} <=> %s
                     LIMIT %s;
                     """
-                    
+
                     cur.execute(search_sql, (query_embedding, query_embedding, k))
                     rows = cur.fetchall()
-                    
+
                     results = []
                     for row in rows:
                         result = {
@@ -196,13 +202,14 @@ class PgVectorRetriever(BaseRetriever):
                         if row[self.text_column]:
                             result["text"] = row[self.text_column]
                         results.append(result)
-                    
+
                     return results
 
         return self._retry_on_failure(_search)
 
-    def get(self, doc_id: str) -> Optional[Dict[str, Any]]:
+    def get(self, doc_id: str) -> dict[str, Any] | None:
         """Get document by ID."""
+
         def _get():
             with self._get_connection() as conn:
                 with conn.cursor() as cur:
@@ -211,10 +218,10 @@ class PgVectorRetriever(BaseRetriever):
                     FROM {self.table_name}
                     WHERE {self.id_column} = %s;
                     """
-                    
+
                     cur.execute(select_sql, (doc_id,))
                     row = cur.fetchone()
-                    
+
                     if row:
                         result = {
                             "id": row[self.id_column],
@@ -223,7 +230,7 @@ class PgVectorRetriever(BaseRetriever):
                         if row[self.text_column]:
                             result["text"] = row[self.text_column]
                         return result
-                    
+
                     return None
 
         return self._retry_on_failure(_get)
@@ -242,21 +249,18 @@ class PgVectorRetriever(BaseRetriever):
                     conn.commit()
 
         self._batch_process(
-            ids_list,
-            _delete_batch,
-            f"Deleting documents from pgVector table '{self.table_name}'"
+            ids_list, _delete_batch, f"Deleting documents from pgVector table '{self.table_name}'"
         )
 
     def persist(self) -> None:
         """PostgreSQL automatically persists data."""
-        pass
 
     def close(self) -> None:
         """Close connection pool."""
         with self._lock:
             if self._closed:
                 return
-                
+
             try:
                 if self._pool:
                     self._pool.closeall()

@@ -1,71 +1,134 @@
-"""A small LangGraph-style orchestrator for shopping intents.
+"""LangGraph pipeline for shopping assistant.
 
-This module provides a graph-like interface without requiring the
-`langgraph` package so it's easy to run locally. It implements:
-
-- classify_intent(question) -> one of "faq", "order_details", "product_inquiry"
-- nodes for each intent
-- run_shopping_graph(question) -> dict with {intent, result}
-
-You can later replace the simple functions with actual LangGraph nodes.
+Implements a proper stateful graph:
+- classify_intent -> sets intent in state
+- conditional route by intent
+- retrieve_context (for FAQ) -> sets context
+- answer (FAQ or Other) -> sets final answer
 """
-from typing import Dict
 
-from app.services.rag_service import answer_shopping_question
-from app.prompts.basic import intent_classification_prompt, rag_prompt
-from app.llm.groq_client import GroqClient
+from __future__ import annotations
+
+from typing import Any
+
 from langchain_core.output_parsers import JsonOutputParser
-from app.retrievers.weaviate_retriever import WeaviateRetriever
 from langchain_ollama import OllamaEmbeddings
+from langgraph.graph import END
+from langgraph.graph import StateGraph
 
-embeddings = OllamaEmbeddings(model="nomic-embed-text")
-model = GroqClient()
+from app.graphs.states import ShoppingState
+from app.llm.groq_client import GroqClient
+from app.prompts.basic import intent_classification_prompt
+from app.prompts.basic import rag_prompt
+
+# Optional retriever integration
+from app.retrievers.weaviate_retriever import WeaviateRetriever
+from app.utils.logger import get_logger
+
+logger = get_logger("graphs.shopping")
+
+
+def _init_retriever() -> WeaviateRetriever | None:
+    try:
+        embeddings = OllamaEmbeddings(model="nomic-embed-text")
+        return WeaviateRetriever(client=None, index_name="FAQ", embedding_fn=embeddings)
+    except Exception as e:
+        logger.error(f"Retriever initialization failed: {e}")
+        return None
+
+
 parser = JsonOutputParser()
-retriever = WeaviateRetriever(client=None, index_name="FAQ", embedding_fn=embeddings)
-
-def classify_intent(question: str) -> str:
-    """Very small keyword-based intent classifier.
-
-    Returns: 'faq', 'order_details', or 'product_inquiry'
-    """
-    chain = intent_classification_prompt | model.llm | parser
-    result = chain.invoke({"input": question})
-    return result["intent"]
-
-    # q = question.lower()
-    # # order-related keywords
-    # if re.search(r"\b(order|status|track|shipping|shipment|deliv)\b", q):
-    #     return "order_details"
-
-    # # product inquiry keywords
-    # if re.search(r"\b(price|cost|spec|specs|dimensions|weight|warranty|feature|model|variant)\b", q):
-    #     return "product_inquiry"
-
-    # # fallback to faq
-    # return "faq"
+llm_client = GroqClient()
+retriever = _init_retriever()
 
 
-async def faq_node(question: str) -> Dict:
-    # Placeholder FAQ logic: in a real graph we'd query a FAQ DB
-    # Retrieve top documents, combine their text, then run through the prompt -> llm
-    docs = retriever.vectorstore.similarity_search(question, k=5)
-    # docs is a list of Document-like objects; extract page_content/text
-    chain = rag_prompt | model.llm
-    result = chain.invoke({"question": question, "context": docs})
-    # result may be a RunnableResult or similar; prefer .content when present
-    answer = getattr(result, "content", result)
-    return {"type": "faq", "answer": answer}
+def node_classify(state: ShoppingState) -> dict[str, Any]:
+    question = state["question"]
+    try:
+        chain = intent_classification_prompt | llm_client.llm | parser
+        result = chain.invoke({"input": question})
+        intent = result.get("intent", "Other")
+        return {"intent": intent}
+    except Exception as e:
+        logger.error("Intent classification failed", extra={"error": str(e)})
+        return {"intent": "Other", "error": f"intent_error: {e}"}
 
-async def other_query_node(question: str) -> Dict:
-    # Placeholder: extract other query details if present
-    return {"type": "other", "answer":"I can only answer FAQ questions."}
 
-async def run_shopping_graph(question: str) -> Dict:
-    """Run the shopping graph: classify intent -> run node -> return structured result."""
-    intent = classify_intent(question)
-    if intent == "FAQ":
-        result = await faq_node(question)
-    else:
-        result = await other_query_node(question)
+def node_retrieve(state: ShoppingState) -> dict[str, Any]:
+    question = state["question"]
+    if retriever is None:
+        return {"context": []}
+    try:
+        docs = retriever.similarity_search(question, k=5)
+        # docs may be list of Document objects or dicts
+        texts: list[str] = []
+        for d in docs:
+            text = getattr(d, "page_content", None) if hasattr(d, "page_content") else None
+            if text is None and isinstance(d, dict):
+                text = d.get("text") or d.get("content") or d.get("page_content")
+            if text:
+                texts.append(text)
+        return {"context": texts}
+    except Exception as e:
+        logger.error("Context retrieval failed", extra={"error": str(e)})
+        return {"context": [], "error": f"retrieval_error: {e}"}
 
-    return {"intent": intent, "result": result}
+
+def node_answer_faq(state: ShoppingState) -> dict[str, Any]:
+    question = state["question"]
+    context_list = state.get("context") or []
+    context_str = "\n\n".join(context_list) if isinstance(context_list, list) else str(context_list)
+    try:
+        chain = rag_prompt | llm_client.llm
+        result = chain.invoke({"question": question, "context": context_str})
+        answer = getattr(result, "content", result)
+        return {"answer": answer}
+    except Exception as e:
+        logger.error("Answer generation failed", extra={"error": str(e)})
+        return {"answer": "I'm having trouble answering right now.", "error": f"answer_error: {e}"}
+
+
+def node_answer_other(state: ShoppingState) -> dict[str, Any]:
+    return {"answer": "I can only answer product-related FAQs for now."}
+
+
+def _route_by_intent(state: ShoppingState) -> str:
+    intent = (state.get("intent") or "Other").strip()
+    if intent.upper() == "FAQ":
+        return "retrieve_context"
+    return "answer_other"
+
+
+# Build the graph
+graph = StateGraph(ShoppingState)
+graph.add_node("classify_intent", node_classify)
+graph.add_node("retrieve_context", node_retrieve)
+graph.add_node("answer_faq", node_answer_faq)
+graph.add_node("answer_other", node_answer_other)
+
+graph.set_entry_point("classify_intent")
+graph.add_conditional_edges(
+    "classify_intent",
+    _route_by_intent,
+    {
+        "retrieve_context": "retrieve_context",
+        "answer_other": "answer_other",
+    },
+)
+graph.add_edge("retrieve_context", "answer_faq")
+graph.add_edge("answer_faq", END)
+graph.add_edge("answer_other", END)
+
+compiled = graph.compile()
+
+
+async def run_shopping_graph(question: str) -> dict[str, Any]:
+    """Execute the shopping graph end-to-end and return structured result."""
+    initial: ShoppingState = {"question": question}
+    state: ShoppingState = await compiled.ainvoke(initial)
+    return {
+        "intent": state.get("intent"),
+        "answer": state.get("answer"),
+        "context": state.get("context", []),
+        "error": state.get("error"),
+    }

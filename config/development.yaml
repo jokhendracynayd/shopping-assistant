@@ -1,0 +1,45 @@
+# Development environment configuration
+# Override default settings for local development
+
+# Application settings
+debug: true
+environment: "development"
+
+# Logging
+logging_enabled: true
+log_level: "DEBUG"
+
+# Security
+api_keys: "dev-key-123,dev-key-456"
+require_api_key: false  # Disabled for easier development
+rate_limiting_enabled: false  # Disabled for development (requires Redis)
+
+# Database connections
+redis_url: "redis://localhost:6379/0"
+redis_max_connections: 5
+
+# External services (use local/mock when possible)
+weaviate_url: "http://localhost:8080"
+weaviate_api_key: ""
+
+# LLM settings
+default_temperature: 0.1  # Slightly higher for more creative dev responses
+llm_timeout_seconds: 60  # Longer timeout for development
+
+# Rate limiting (lenient for development)
+rate_limit_requests_per_minute: 300
+rate_limit_requests_per_hour: 5000
+
+# CORS
+cors_origins:
+  - "http://localhost:3000"
+  - "http://localhost:3001"
+  - "http://127.0.0.1:3000"
+
+# Cache
+cache_ttl_seconds: 60  # Shorter cache for development
+
+# Development-specific features
+enable_debug_endpoints: true
+enable_mock_services: true
+auto_reload: true

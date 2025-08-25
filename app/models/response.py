@@ -1,21 +1,21 @@
 """Standard response and error models for API endpoints."""
-from typing import Any, Optional
+
+from typing import Any
+
 from pydantic import BaseModel
 
 
 class ErrorModel(BaseModel):
     code: str
     message: str
-    details: Optional[Any] = None
-    numeric_code: Optional[int] = None
-    http_status: Optional[int] = None
-    timestamp: Optional[str] = None
+    details: Any | None = None
+    numeric_code: int | None = None
+    http_status: int | None = None
+    timestamp: str | None = None
 
 
 class Response(BaseModel):
     success: bool
-    data: Optional[Any] = None
-    meta: Optional[dict] = None
-    error: Optional[ErrorModel] = None
-
-
+    data: Any | None = None
+    meta: dict | None = None
+    error: ErrorModel | None = None
