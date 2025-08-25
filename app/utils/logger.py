@@ -45,9 +45,15 @@ def setup_logging(enabled: bool = True, level: int = logging.INFO, log_dir: str 
     - Error file: ERROR and CRITICAL
     """
     if not enabled:
-        # disable all handlers
-        logging.getLogger().handlers = []
-        logging.getLogger().setLevel(logging.CRITICAL + 10)
+        # disable all handlers: close them first to avoid ResourceWarning for open files
+        root = logging.getLogger()
+        for h in list(root.handlers):
+            try:
+                h.close()
+            except Exception:
+                pass
+        root.handlers = []
+        root.setLevel(logging.CRITICAL + 10)
         return
 
     os.makedirs(log_dir, exist_ok=True)

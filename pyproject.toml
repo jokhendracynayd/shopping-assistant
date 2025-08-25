@@ -11,7 +11,10 @@ dependencies = [
     "langchain-anthropic>=0.3.19",
     "langchain-community>=0.3.27",
     "langchain-groq>=0.3.7",
+    "langchain-ollama>=0.3.7",
     "langchain-openai>=0.3.30",
+    "langchain-postgres>=0.0.15",
+    "langchain-weaviate>=0.0.5",
     "langgraph>=0.6.6",
     "numpy>=2.3.2",
     "pydantic>=2.11.7",
@@ -19,4 +22,5 @@ dependencies = [
     "python-dotenv>=1.1.1",
     "redis>=6.4.0",
     "uvicorn[standard]>=0.35.0",
+    "weaviate-client>=4.16.9",
 ]

@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import shopping
 from app.utils.errors import APIError, to_error_dict, ErrorCode, Error
@@ -17,6 +18,15 @@ def create_app() -> FastAPI:
     logger.info("starting application", extra={"logging_enabled": settings.logging_enabled})
 
     app = FastAPI(title="Shopping Assistant")
+
+    # Allow requests from local frontend during development
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     # include API routers
     app.include_router(

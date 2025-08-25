@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     # Anthropic API key
     ANTHROPIC_API_KEY: str = ""
+    # Weaviate settings
+    WEAVIATE_URL: str = ""
+    WEAVIATE_API_KEY: str = ""
 
     class Config:
         env_file = ".env"

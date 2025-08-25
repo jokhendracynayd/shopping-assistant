@@ -309,3 +309,117 @@ class FaissRetriever(BaseRetriever):
                 "num_documents": len(self._documents),
                 "normalize_embeddings": self.normalize_embeddings,
             }
+
+
+# documents = [
+#     {
+#         "id": "return_policy_001",
+#         "text": "We offer a 30-day return policy for most items in original condition. Some items may be final sale and are not eligible for return.",
+#         "metadata": {
+#             "category": "Returns & Refunds",
+#             "policy_type": "Return Policy",
+#             "timeframe_days": 30,
+#             "condition_requirements": ["original condition"],
+#             "exclusions": ["final sale items"],
+#             "last_updated": "2024-01-15"
+#         }
+#     },
+#     {
+#         "id": "shipping_intl_002",
+#         "text": "Yes, we ship to over 50 countries worldwide. Shipping costs and delivery times vary by destination.",
+#         "metadata": {
+#             "category": "Shipping & Delivery",
+#             "topic": "International Shipping",
+#             "countries_served": 50,
+#             "cost_calculation": "varies by destination",
+#             "service_levels": ["Standard", "Express"]
+#         }
+#     },
+#     {
+#         "id": "delivery_time_003",
+#         "text": "Delivery times depend on your location and the shipping method chosen. Standard shipping typically takes 3-7 business days.",
+#         "metadata": {
+#             "category": "Shipping & Delivery",
+#             "topic": "Delivery Estimates",
+#             "timeframe": "3-7 business days",
+#             "factors": ["customer location", "shipping method"],
+#             "service_level": "Standard"
+#         }
+#     },
+#     {
+#         "id": "payment_methods_004",
+#         "text": "We accept all major credit cards (Visa, Mastercard, Amex), PayPal, and Apple Pay.",
+#         "metadata": {
+#             "category": "Payment",
+#             "topic": "Accepted Payment Methods",
+#             "methods": ["Visa", "Mastercard", "American Express", "PayPal", "Apple Pay"]
+#         }
+#     },
+#     {
+#         "id": "order_tracking_005",
+#         "text": "Once your order ships, you'll receive a tracking number via email. You can also check your order status in your account.",
+#         "metadata": {
+#             "category": "Shipping & Delivery",
+#             "topic": "Order Tracking",
+#             "notification_method": "email",
+#             "tracking_availability": "after shipment",
+#             "alternative_method": "online account"
+#         }
+#     },
+#     {
+#         "id": "discount_code_issue_006",
+#         "text": "Please check the code's spelling, validity period, and if there's a minimum spend requirement. If it still doesn't work, contact our customer support team.",
+#         "metadata": {
+#             "category": "Discounts & Promotions",
+#             "topic": "Troubleshooting Discount Codes",
+#             "common_issues": ["spelling errors", "expired code", "minimum spend not met"],
+#             "resolution_path": "contact support"
+#         }
+#     },
+#     {
+#         "id": "out_of_stock_007",
+#         "text": "We restock regularly! Enter your email on the product page for a 'Restock Alert' to be notified when it's available.",
+#         "metadata": {
+#             "category": "Product Information",
+#             "topic": "Out of Stock Items",
+#             "action": "restock alert signup",
+#             "notification_method": "email",
+#             "restock_frequency": "regularly"
+#         }
+#     },
+#     {
+#         "id": "change_cancel_order_008",
+#         "text": "Please contact us immediately. We can only change or cancel an order if it hasn't yet been processed for shipping.",
+#         "metadata": {
+#             "category": "Order Management",
+#             "topic": "Order Modifications",
+#             "action": "contact support",
+#             "time_sensitivity": "immediate",
+#             "limitation": "before shipping processing"
+#         }
+#     },
+#     {
+#         "id": "pricing_transparency_009",
+#         "text": "The price you see at checkout is the final price. It includes all applicable taxes and duties for your region.",
+#         "metadata": {
+#             "category": "Pricing",
+#             "topic": "Price Transparency",
+#             "included_costs": ["taxes", "duties"],
+#             "price_display": "final price at checkout"
+#         }
+#     },
+#     {
+#         "id": "account_creation_010",
+#         "text": "Click 'Sign In' and then 'Create an Account.' You'll need to provide your name, email, and create a password.",
+#         "metadata": {
+#             "category": "Account Management",
+#             "topic": "Account Creation",
+#             "required_fields": ["name", "email", "password"],
+#             "process": "self-service"
+#         }
+#     }
+# ]
+
+# faiss_retriever = FaissRetriever(embedding_dim=1536, index_factory_string="Flat", embedding_fn=None, persist_path="faiss_index", normalize_embeddings=True)
+
+# faiss_retriever.add_documents(documents)
