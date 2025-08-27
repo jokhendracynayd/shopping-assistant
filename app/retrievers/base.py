@@ -34,9 +34,7 @@ class RetrieverConfig:
 
 
 class BaseRetriever(ABC):
-    """
-    Enhanced abstract base class for vector retrievers with improved robustness.
-    """
+    """Enhanced abstract base class for vector retrievers with improved robustness."""
 
     def __init__(self, config: RetrieverConfig | None = None):
         self.config = config or RetrieverConfig()

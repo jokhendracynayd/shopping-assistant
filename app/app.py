@@ -8,7 +8,7 @@ from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.v1 import shopping
+from app.api.v1 import routes
 from app.middleware.rate_limiting import RateLimitingMiddleware
 from app.middleware.request_size_limit import RequestSizeLimitMiddleware
 from app.models.response import Response
@@ -76,7 +76,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         RequestSizeLimitMiddleware,
         max_size_bytes=10 * 1024 * 1024,  # 10MB limit
-        exclude_paths=["/health", "/docs", "/openapi.json"]
+        exclude_paths=["/health", "/docs", "/openapi.json"],
     )
 
     # Allow requests from local frontend during development
@@ -90,7 +90,7 @@ def create_app() -> FastAPI:
 
     # include API routers
     app.include_router(
-        shopping.router,
+        routes.router,
         prefix="/api/v1/shopping",
         # , dependencies=[Depends(require_api_key)]
     )
@@ -195,11 +195,10 @@ def create_app() -> FastAPI:
 
     @app.get("/health/ready", tags=["Health"], summary="Readiness probe")
     async def readiness_check():
-        """
-        Comprehensive readiness check that verifies all dependencies.
+        """Comprehensive readiness check that verifies all dependencies.
 
-        Returns 200 if all services are ready, 503 if any service is unavailable.
-        Used by Kubernetes readiness probes and load balancers.
+        Returns 200 if all services are ready, 503 if any service is unavailable. Used by Kubernetes
+        readiness probes and load balancers.
         """
         checks = []
         overall_healthy = True
@@ -234,11 +233,10 @@ def create_app() -> FastAPI:
 
     @app.get("/health/live", tags=["Health"], summary="Liveness probe")
     async def liveness_check():
-        """
-        Liveness probe endpoint for Kubernetes.
+        """Liveness probe endpoint for Kubernetes.
 
-        Returns 200 if the application process is alive and responsive.
-        Should only fail if the application needs to be restarted.
+        Returns 200 if the application process is alive and responsive. Should only fail if the
+        application needs to be restarted.
         """
         return {
             "status": "alive",

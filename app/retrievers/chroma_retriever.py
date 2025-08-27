@@ -11,9 +11,7 @@ logger = get_logger(__name__)
 
 
 class ChromaRetriever(BaseRetriever):
-    """
-    Enhanced ChromaDB-based retriever with improved robustness and scalability.
-    """
+    """Enhanced ChromaDB-based retriever with improved robustness and scalability."""
 
     def __init__(
         self,

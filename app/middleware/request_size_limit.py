@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-import json
 from typing import Any
 
-from fastapi import Request, Response
+from fastapi import Request
+from fastapi import Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.config import settings
-from app.utils.errors import Error, ErrorCode
+from app.utils.errors import Error
+from app.utils.errors import ErrorCode
 from app.utils.logger import get_logger
 
 logger = get_logger("middleware.request_size")
@@ -26,7 +26,7 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
         exclude_paths: list[str] | None = None,
     ):
         """Initialize request size limit middleware.
-        
+
         Args:
             app: FastAPI application instance
             max_size_bytes: Maximum allowed request body size in bytes
@@ -41,7 +41,7 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next: Any) -> Response:
         """Process request and enforce size limits."""
-        
+
         # Skip size checking for excluded paths
         if any(request.url.path.startswith(path) for path in self.exclude_paths):
             return await call_next(request)
@@ -64,7 +64,7 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
                             "content_length": size,
                             "limit": self.max_size_bytes,
                             "client_ip": request.client.host if request.client else "unknown",
-                        }
+                        },
                     )
                     return self._create_error_response(
                         f"Request body too large. Maximum size: {self.max_size_bytes} bytes"
@@ -93,20 +93,20 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
                     "details": {
                         "max_size_bytes": self.max_size_bytes,
                         "max_size_human": self._format_bytes(self.max_size_bytes),
-                    }
+                    },
                 }
             },
             headers={
                 "Content-Type": "application/json",
                 "X-RateLimit-Type": "request-size",
                 "Retry-After": "60",  # Suggest retry after 1 minute
-            }
+            },
         )
 
     @staticmethod
     def _format_bytes(bytes_value: int) -> str:
         """Format bytes into human readable format."""
-        for unit in ['B', 'KB', 'MB', 'GB']:
+        for unit in ["B", "KB", "MB", "GB"]:
             if bytes_value < 1024.0:
                 return f"{bytes_value:.1f} {unit}"
             bytes_value /= 1024.0
@@ -114,22 +114,21 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
 
 
 def create_request_size_middleware(
-    max_size_mb: int = 10,
-    exclude_paths: list[str] | None = None
+    max_size_mb: int = 10, exclude_paths: list[str] | None = None
 ) -> RequestSizeLimitMiddleware:
     """Factory function to create request size limit middleware.
-    
+
     Args:
         max_size_mb: Maximum request size in megabytes
         exclude_paths: Paths to exclude from size checking
-        
+
     Returns:
         Configured RequestSizeLimitMiddleware instance
     """
     max_size_bytes = max_size_mb * 1024 * 1024
-    
+
     return lambda app: RequestSizeLimitMiddleware(
         app,
         max_size_bytes=max_size_bytes,
-        exclude_paths=exclude_paths or ["/health", "/docs", "/openapi.json"]
+        exclude_paths=exclude_paths or ["/health", "/docs", "/openapi.json"],
     )

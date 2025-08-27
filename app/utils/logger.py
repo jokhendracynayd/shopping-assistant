@@ -1,8 +1,7 @@
 """Centralized logging setup for the application.
 
-Creates console + rotating file handlers and provides helpers to get named
-loggers. Info and error logs are separated into different files under
-`app/log/`.
+Creates console + rotating file handlers and provides helpers to get named loggers. Info and error
+logs are separated into different files under `app/log/`.
 """
 
 import json

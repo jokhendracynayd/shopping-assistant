@@ -20,8 +20,7 @@ except Exception:  # pragma: no cover - import error surfaced at runtime
 
 
 class WeaviateRetriever(BaseRetriever):
-    """
-    Robust Weaviate retriever implementation.
+    """Robust Weaviate retriever implementation.
 
     - Initializes a Weaviate client from settings (cloud if WEAVIATE_URL/WEAVIATE_API_KEY present,
       otherwise falls back to local connection).

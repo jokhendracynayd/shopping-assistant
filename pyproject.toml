@@ -71,6 +71,8 @@ extend-exclude = '''
 [tool.ruff]
 target-version = "py313"
 line-length = 100
+
+[tool.ruff.lint]
 select = [
     "E",    # pycodestyle errors
     "W",    # pycodestyle warnings
@@ -113,7 +115,9 @@ select = [
     "NPY",  # numpy-specific rules
     "RUF",  # ruff-specific rules
 ]
-ignore = [
+
+[tool.ruff.lint.ignore]
+"*" = [
     "S101",   # assert used
     "S608",   # possible SQL injection (we control the queries)
     "COM812", # missing-trailing-comma (conflicts with black)
@@ -134,7 +138,7 @@ ignore = [
     "TRY400",  # use logging.exception instead of logging.error
     "BLE001",  # do not catch blind exception
     "N806",    # variable should be lowercase
-    "TCH003",  # move standard library import into type-checking block
+    "TC003",   # move standard library import into type-checking block
     "SIM401",  # use dict.get instead of if block
     "N802",    # function name should be lowercase
     "TRY004",  # prefer TypeError exception for invalid type

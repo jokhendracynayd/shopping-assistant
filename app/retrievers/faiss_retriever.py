@@ -13,9 +13,7 @@ logger = get_logger(__name__)
 
 
 class FaissRetriever(BaseRetriever):
-    """
-    FAISS-based retriever with persistence and scalability features.
-    """
+    """FAISS-based retriever with persistence and scalability features."""
 
     def __init__(
         self,

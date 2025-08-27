@@ -9,6 +9,8 @@ class QueryPayload(BaseModel):
     """Payload for the shopping query endpoint."""
 
     q: str = Field(..., title="Question", description="The user's shopping question")
+    sessionId: str = Field(..., title="Session ID", description="The user's session ID")
+    # context: list[str] = Field(..., title="Context", description="The context for the query")
 
 
 class DocumentPayload(BaseModel):

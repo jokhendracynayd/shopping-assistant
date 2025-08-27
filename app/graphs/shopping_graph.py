@@ -585,7 +585,6 @@ graph.add_conditional_edges(
     },
 )
 
-
 # For context-dependent flows, route based on original intent
 def _route_after_context(state: ShoppingState) -> str:
     """Route after context retrieval based on original intent."""
@@ -593,7 +592,6 @@ def _route_after_context(state: ShoppingState) -> str:
     if intent == "product_inquiry":
         return "product_inquiry"
     return "answer_faq"  # Default to FAQ handler
-
 
 graph.add_conditional_edges(
     "retrieve_context",

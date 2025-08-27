@@ -133,8 +133,7 @@ class RAGService:
     async def answer_shopping_question(
         self, question: str, use_cache: bool = True, max_context_docs: int = 5
     ) -> str:
-        """
-        Answer a shopping question using RAG pipeline.
+        """Answer a shopping question using RAG pipeline.
 
         Args:
             question: User's question

@@ -13,9 +13,7 @@ logger = get_logger(__name__)
 
 
 class PgVectorRetriever(BaseRetriever):
-    """
-    PostgreSQL with pgvector extension retriever implementation.
-    """
+    """PostgreSQL with pgvector extension retriever implementation."""
 
     def __init__(
         self,
@@ -84,8 +82,8 @@ class PgVectorRetriever(BaseRetriever):
             {self.metadata_column} JSONB,
             {self.embedding_column} vector({self.embedding_dim})
         );
-        
-        CREATE INDEX IF NOT EXISTS {self.table_name}_{self.embedding_column}_idx 
+
+        CREATE INDEX IF NOT EXISTS {self.table_name}_{self.embedding_column}_idx
         ON {self.table_name} USING ivfflat ({self.embedding_column} vector_cosine_ops)
         WITH (lists = 100);
         """
@@ -125,7 +123,7 @@ class PgVectorRetriever(BaseRetriever):
 
                     # Use ON CONFLICT for upsert behavior
                     insert_sql = f"""
-                    INSERT INTO {self.table_name} 
+                    INSERT INTO {self.table_name}
                     ({self.id_column}, {self.text_column}, {self.metadata_column}, {self.embedding_column})
                     VALUES %s
                     ON CONFLICT ({self.id_column}) DO UPDATE SET

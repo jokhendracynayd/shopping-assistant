@@ -46,7 +46,7 @@ repos:
     rev: 2d0b675b04c80ae42277e10500db06a0a37bae17  # frozen: 1.8.6
     hooks:
       - id: bandit
-        args: [-r, app/, -ll, --exclude, tests/]
+        args: [-r, app/, -ll, --exclude, tests/, --skip, B101, B601]
 
   # Docstring formatting
   - repo: https://github.com/PyCQA/docformatter

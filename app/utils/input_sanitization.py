@@ -185,8 +185,7 @@ class InputSanitizer:
         return warnings
 
     def sanitize_query(self, text: str, strict_mode: bool = False) -> SanitizationResult:
-        """
-        Sanitize user input for LLM queries.
+        """Sanitize user input for LLM queries.
 
         Args:
             text: Input text to sanitize
@@ -258,8 +257,7 @@ class InputSanitizer:
         )
 
     def sanitize_document_content(self, content: str) -> SanitizationResult:
-        """
-        Sanitize document content for ingestion.
+        """Sanitize document content for ingestion.
 
         Less strict than query sanitization but still removes dangerous content.
         """

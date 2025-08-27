@@ -1,4 +1,3 @@
-
 from langchain_openai import ChatOpenAI
 
 from app.config import settings
@@ -7,8 +6,8 @@ from .base import BaseLLMClient
 
 
 class OpenAIClient(BaseLLMClient):
-    """
-    Wrapper around LangChain's OpenAI LLM client.
+    """Wrapper around LangChain's OpenAI LLM client.
+
     Supports structured outputs via JSON mode.
     """
 

@@ -1,18 +1,17 @@
 import asyncio
 import json
 from typing import Any
-
 from fastapi import APIRouter
 from fastapi import Body
 from fastapi.responses import StreamingResponse
 from pydantic import ValidationError
-
 from app.graphs.shopping_graph import run_shopping_graph
 from app.graphs.shopping_graph import run_shopping_graph_stream
 from app.models.payload import BulkDocumentPayload
 from app.models.payload import QueryPayload
 from app.models.response import Response
 from app.services.rag_service import add_documents as rag_add_documents
+from app.services.session_service import session_service
 from app.utils.errors import Error
 from app.utils.errors import ErrorCode
 from app.utils.input_sanitization import sanitize_document_content
@@ -97,6 +96,22 @@ async def query_shopping(
             details={"field": "q"},
             message="Request body must include 'q' field",
         )
+    sessionId = payload.sessionId
+    if not sessionId:
+        raise Error(
+            ErrorCode.INVALID_INPUT,
+            details={"field": "sessionId"},
+            message="Request body must include 'sessionId' field",
+        )
+
+    # Initialize or get session
+    session_info = await session_service.get_session_info(sessionId)
+    if not session_info:
+        await session_service.create_session(sessionId)
+        logger.info(f"Created new session: {sessionId}")
+    
+    # Add user message to conversation history
+    await session_service.add_conversation_message(sessionId, "user", q)
 
     # Sanitize user input
     sanitization_result = sanitize_llm_query(q, strict_mode=True)
@@ -128,6 +143,10 @@ async def query_shopping(
     )
 
     result = await run_shopping_graph(sanitized_query)
+    
+    # Add assistant response to conversation history
+    await session_service.add_conversation_message(sessionId, "assistant", result)
+    
     return Response(success=True, data=result)
 
 
@@ -181,12 +200,30 @@ async def query_shopping_stream(
     - 'error': Error information if something goes wrong
     """
     q = payload.q
+    sessionId = payload.sessionId
+    
     if not q:
         raise Error(
             ErrorCode.INVALID_INPUT,
             details={"field": "q"},
             message="Request body must include 'q' field",
         )
+    
+    if not sessionId:
+        raise Error(
+            ErrorCode.INVALID_INPUT,
+            details={"field": "sessionId"},
+            message="Request body must include 'sessionId' field",
+        )
+
+    # Initialize or get session
+    session_info = await session_service.get_session_info(sessionId)
+    if not session_info:
+        await session_service.create_session(sessionId)
+        logger.info(f"Created new streaming session: {sessionId}")
+    
+    # Add user message to conversation history
+    await session_service.add_conversation_message(sessionId, "user", q)
 
     # Sanitize user input (same as non-streaming)
     sanitization_result = sanitize_llm_query(q, strict_mode=True)
@@ -350,3 +387,182 @@ async def add_documents(payload: Any = Body(...)):
             details={"error": str(e)},
             message="Failed to process documents",
         ) from e
+
+
+@router.get("/session/{session_id}/info")
+async def get_session_info(session_id: str):
+    """Get session information and analytics."""
+    try:
+        session_info = await session_service.get_session_info(session_id)
+        if not session_info:
+            raise Error(
+                ErrorCode.NOT_FOUND,
+                details={"session_id": session_id},
+                message="Session not found",
+            )
+        
+        analytics = await session_service.get_session_analytics(session_id)
+        
+        return Response(
+            success=True,
+            data={
+                "session_info": session_info,
+                "analytics": analytics
+            }
+        )
+        
+    except Error:
+        raise
+    except Exception as e:
+        logger.exception(f"Failed to get session info for {session_id}")
+        raise Error(
+            ErrorCode.INTERNAL_ERROR,
+            details={"error": str(e)},
+            message="Failed to retrieve session information",
+        )
+
+
+@router.get("/session/{session_id}/conversation")
+async def get_conversation_history(session_id: str, limit: int = 20):
+    """Get conversation history for a session."""
+    try:
+        conversation = await session_service.get_conversation_history(session_id, limit=limit)
+        
+        return Response(
+            success=True,
+            data={
+                "session_id": session_id,
+                "conversation": conversation,
+                "count": len(conversation)
+            }
+        )
+        
+    except Exception as e:
+        logger.exception(f"Failed to get conversation history for {session_id}")
+        raise Error(
+            ErrorCode.INTERNAL_ERROR,
+            details={"error": str(e)},
+            message="Failed to retrieve conversation history",
+        )
+
+
+@router.post("/session/{session_id}/preferences")
+async def update_preferences(session_id: str, preferences: dict = Body(...)):
+    """Update user preferences for a session."""
+    try:
+        success = await session_service.update_user_preferences(session_id, preferences)
+        
+        if not success:
+            raise Error(
+                ErrorCode.NOT_FOUND,
+                details={"session_id": session_id},
+                message="Session not found",
+            )
+        
+        return Response(
+            success=True,
+            data={
+                "message": "Preferences updated successfully",
+                "session_id": session_id,
+                "preferences": preferences
+            }
+        )
+        
+    except Error:
+        raise
+    except Exception as e:
+        logger.exception(f"Failed to update preferences for {session_id}")
+        raise Error(
+            ErrorCode.INTERNAL_ERROR,
+            details={"error": str(e)},
+            message="Failed to update preferences",
+        )
+
+
+@router.get("/session/{session_id}/cart")
+async def get_shopping_cart(session_id: str):
+    """Get shopping cart for a session."""
+    try:
+        cart = await session_service.get_shopping_cart(session_id)
+        
+        return Response(
+            success=True,
+            data={
+                "session_id": session_id,
+                "cart": cart,
+                "item_count": len(cart)
+            }
+        )
+        
+    except Exception as e:
+        logger.exception(f"Failed to get shopping cart for {session_id}")
+        raise Error(
+            ErrorCode.INTERNAL_ERROR,
+            details={"error": str(e)},
+            message="Failed to retrieve shopping cart",
+        )
+
+
+@router.post("/session/{session_id}/cart/add")
+async def add_to_cart(session_id: str, item: dict = Body(...)):
+    """Add item to shopping cart."""
+    try:
+        success = await session_service.add_to_cart(session_id, item)
+        
+        if not success:
+            raise Error(
+                ErrorCode.NOT_FOUND,
+                details={"session_id": session_id},
+                message="Session not found",
+            )
+        
+        return Response(
+            success=True,
+            data={
+                "message": "Item added to cart successfully",
+                "session_id": session_id,
+                "item": item
+            }
+        )
+        
+    except Error:
+        raise
+    except Exception as e:
+        logger.exception(f"Failed to add item to cart for {session_id}")
+        raise Error(
+            ErrorCode.INTERNAL_ERROR,
+            details={"error": str(e)},
+            message="Failed to add item to cart",
+        )
+
+
+@router.delete("/session/{session_id}/cart/clear")
+async def clear_cart(session_id: str):
+    """Clear shopping cart for a session."""
+    try:
+        success = await session_service.clear_cart(session_id)
+        
+        if not success:
+            raise Error(
+                ErrorCode.NOT_FOUND,
+                details={"session_id": session_id},
+                message="Session not found",
+            )
+        
+        return Response(
+            success=True,
+            data={
+                "message": "Cart cleared successfully",
+                "session_id": session_id
+            }
+        )
+        
+    except Error:
+        raise
+    except Exception as e:
+        logger.exception(f"Failed to clear cart for {session_id}")
+        raise Error(
+            ErrorCode.INTERNAL_ERROR,
+            details={"error": str(e)},
+            message="Failed to clear cart",
+        )

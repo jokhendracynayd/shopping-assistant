@@ -1,4 +1,3 @@
-
 from langchain_anthropic import ChatAnthropic
 
 from app.config import settings
@@ -7,9 +6,7 @@ from .base import BaseLLMClient
 
 
 class AnthropicClient(BaseLLMClient):
-    """
-    Wrapper around Anthropic's Claude models.
-    """
+    """Wrapper around Anthropic's Claude models."""
 
     def __init__(
         self,

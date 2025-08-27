@@ -1,7 +1,7 @@
 """Environment-specific configuration management.
 
-Loads configuration from YAML files based on the current environment,
-with fallback to environment variables and defaults.
+Loads configuration from YAML files based on the current environment, with fallback to environment
+variables and defaults.
 """
 
 from __future__ import annotations

@@ -1,12 +1,13 @@
 """Graph state definitions for the shopping assistant LangGraph pipeline.
 
-The state tracks the user question, classified intent, retrieved context and
-the final answer. Nodes update subsets of this state as the graph executes.
+The state tracks the user question, classified intent, retrieved context and the final answer. Nodes
+update subsets of this state as the graph executes.
 """
 
 from __future__ import annotations
 
-from typing import Any, TypedDict
+from typing import Any
+from typing import TypedDict
 
 
 class ShoppingState(TypedDict, total=False):
@@ -18,7 +19,7 @@ class ShoppingState(TypedDict, total=False):
     - context: Retrieved document snippets or formatted context string
     - answer: Final answer string
     - error: Optional error message captured during execution
-    
+
     Quality and performance fields:
     - confidence: Answer confidence level ("high", "medium", "low", "none")
     - quality_metrics: Detailed quality scoring and validation metrics
@@ -34,7 +35,7 @@ class ShoppingState(TypedDict, total=False):
     context: list[str] | str | None  # Can be list for backward compatibility or formatted string
     answer: str | None
     error: str | None
-    
+
     # Enhanced quality and performance tracking
     confidence: str | None  # "high", "medium", "low", "none"
     quality_metrics: dict[str, Any] | None  # Detailed quality metrics

@@ -1,7 +1,7 @@
 """Rate limiting middleware using Redis backend.
 
-Implements sliding window rate limiting with configurable limits per endpoint
-and per client IP address.
+Implements sliding window rate limiting with configurable limits per endpoint and per client IP
+address.
 """
 
 from __future__ import annotations
@@ -75,8 +75,7 @@ class RateLimiter:
     async def _sliding_window_check(
         self, redis_key: str, window_seconds: int, max_requests: int
     ) -> tuple[bool, int, int]:
-        """
-        Check rate limit using sliding window algorithm.
+        """Check rate limit using sliding window algorithm.
 
         Returns:
             (is_allowed, current_count, time_until_reset)
@@ -118,8 +117,7 @@ class RateLimiter:
             return True, 0, 0
 
     async def check_rate_limit(self, request: Request) -> tuple[bool, dict[str, Any]]:
-        """
-        Check if request should be rate limited.
+        """Check if request should be rate limited.
 
         Returns:
             (is_allowed, rate_limit_info)
