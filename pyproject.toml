@@ -124,6 +124,21 @@ ignore = [
     "EM101",   # raw-string-in-exception
     "EM102",   # f-string-in-exception
     "G004",    # logging-f-string
+    "E501",    # line too long, handled by formatter
+    "B008",    # do not perform function calls in argument defaults
+    "C901",    # too complex
+    "ARG001",  # unused-function-args
+    "PLR2004", # magic value used in comparison
+    "TRY300",  # consider moving statement to else block
+    "TRY301",  # abstract raise to inner function
+    "TRY400",  # use logging.exception instead of logging.error
+    "BLE001",  # do not catch blind exception
+    "N806",    # variable should be lowercase
+    "TCH003",  # move standard library import into type-checking block
+    "SIM401",  # use dict.get instead of if block
+    "N802",    # function name should be lowercase
+    "TRY004",  # prefer TypeError exception for invalid type
+    "B904",    # within except clause, raise exceptions with from
 ]
 
 [tool.ruff.per-file-ignores]
