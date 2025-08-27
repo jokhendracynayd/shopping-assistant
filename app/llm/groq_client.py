@@ -1,5 +1,7 @@
+import asyncio
 import logging
 import os
+from collections.abc import AsyncIterator
 
 from langchain_groq import ChatGroq  # Groq exposes OpenAI-compatible API
 
@@ -11,9 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class GroqClient(BaseLLMClient):
-    """
-    Wrapper for Groq LLMs (OpenAI-compatible).
-    """
+    """Wrapper for Groq LLMs (OpenAI-compatible)."""
 
     def __init__(
         self, model_name: str = "llama3-8b-8192", temperature: float = settings.default_temperature
@@ -33,7 +33,6 @@ class GroqClient(BaseLLMClient):
         return ChatGroq(model=self.model_name, temperature=self.temperature, **kwargs)
 
     def generate(self, prompt: str, **kwargs) -> str:
-        import asyncio
 
         timeout = kwargs.pop("timeout", settings.llm_timeout_seconds)
 
@@ -50,10 +49,9 @@ class GroqClient(BaseLLMClient):
                 result = asyncio.run(response)
             return result.content
         except TimeoutError:
-            raise TimeoutError(f"LLM request timed out after {timeout} seconds")
+            raise TimeoutError(f"LLM request timed out after {timeout} seconds") from None
 
     async def agenerate(self, prompt: str, **kwargs) -> str:
-        import asyncio
 
         timeout = kwargs.pop("timeout", settings.llm_timeout_seconds)
 
@@ -61,10 +59,9 @@ class GroqClient(BaseLLMClient):
             response = await asyncio.wait_for(self.llm.ainvoke(prompt, **kwargs), timeout=timeout)
             return response.content
         except TimeoutError:
-            raise TimeoutError(f"LLM request timed out after {timeout} seconds")
+            raise TimeoutError(f"LLM request timed out after {timeout} seconds") from None
 
     def chat(self, messages: list[dict[str, str]], **kwargs) -> str:
-        import asyncio
 
         timeout = kwargs.pop("timeout", settings.llm_timeout_seconds)
 
@@ -79,10 +76,9 @@ class GroqClient(BaseLLMClient):
                 result = asyncio.run(response)
             return result.content
         except TimeoutError:
-            raise TimeoutError(f"LLM request timed out after {timeout} seconds")
+            raise TimeoutError(f"LLM request timed out after {timeout} seconds") from None
 
     async def achat(self, messages: list[dict[str, str]], **kwargs) -> str:
-        import asyncio
 
         timeout = kwargs.pop("timeout", settings.llm_timeout_seconds)
 
@@ -90,4 +86,62 @@ class GroqClient(BaseLLMClient):
             response = await asyncio.wait_for(self.llm.ainvoke(messages, **kwargs), timeout=timeout)
             return response.content
         except TimeoutError:
-            raise TimeoutError(f"LLM request timed out after {timeout} seconds")
+            raise TimeoutError(f"LLM request timed out after {timeout} seconds") from None
+
+    async def astream(self, prompt: str, **kwargs) -> AsyncIterator[str]:
+        """Stream text generation asynchronously, yielding chunks as they arrive."""
+
+        timeout = kwargs.pop("timeout", settings.llm_timeout_seconds)
+
+        try:
+            # Create async generator with timeout
+            async def stream_with_timeout():
+                stream = self.llm.astream(prompt, **kwargs)
+                async for chunk in stream:
+                    if hasattr(chunk, "content") and chunk.content:
+                        yield chunk.content
+                    elif isinstance(chunk, str):
+                        yield chunk
+
+            # Wrap the streaming in a timeout
+            start_time = asyncio.get_event_loop().time()
+            async for chunk in stream_with_timeout():
+                # Check timeout on each chunk
+                if asyncio.get_event_loop().time() - start_time > timeout:
+                    raise TimeoutError(f"LLM stream timed out after {timeout} seconds")
+                yield chunk
+
+        except TimeoutError:
+            raise TimeoutError(f"LLM stream timed out after {timeout} seconds") from None
+        except Exception:
+            logger.exception("Error in stream generation")
+            raise
+
+    async def achat_stream(self, messages: list[dict[str, str]], **kwargs) -> AsyncIterator[str]:
+        """Stream chat-based generation asynchronously, yielding chunks as they arrive."""
+
+        timeout = kwargs.pop("timeout", settings.llm_timeout_seconds)
+
+        try:
+            # Create async generator with timeout
+            async def stream_with_timeout():
+                stream = self.llm.astream(messages, **kwargs)
+                async for chunk in stream:
+                    if hasattr(chunk, "content") and chunk.content:
+                        yield chunk.content
+                    elif isinstance(chunk, str):
+                        yield chunk
+
+            # Wrap the streaming in a timeout
+            start_time = asyncio.get_event_loop().time()
+            async for chunk in stream_with_timeout():
+                # Check timeout on each chunk
+                if asyncio.get_event_loop().time() - start_time > timeout:
+                    raise TimeoutError(f"LLM stream timed out after {timeout} seconds")
+                yield chunk
+
+        except TimeoutError:
+            raise TimeoutError(f"LLM chat stream timed out after {timeout} seconds") from None
+        except Exception:
+            logger.exception("Error in chat stream generation")
+            raise

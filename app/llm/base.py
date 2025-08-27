@@ -1,21 +1,23 @@
 from abc import ABC
 from abc import abstractmethod
+from collections.abc import AsyncIterator
 from typing import Any
 
 from pydantic import BaseModel
 
 
 class BaseLLMClient(ABC):
-    """
-    Abstract base class for LLM clients.
+    """Abstract base class for LLM clients.
+
     All providers (OpenAI, Groq, Anthropic) must implement this interface.
     """
 
     def __init__(self, api_key: str | None, model_name: str, temperature: float = 0.0):
-        """Initialize client. Do NOT raise on missing API key here to allow tests/mocks.
+        """Initialize client.
 
-        Validation of credentials should happen at startup or via an explicit
-        `validate()` call so unit tests can construct clients without keys.
+        Do NOT raise on missing API key here to allow tests/mocks. Validation of credentials should
+        happen at startup or via an explicit `validate()` call so unit tests can construct clients
+        without keys.
         """
         self.api_key = api_key
         self.model_name = model_name
@@ -23,7 +25,7 @@ class BaseLLMClient(ABC):
 
     @abstractmethod
     def get_model(self, **kwargs) -> Any:
-        """Return an initialized LLM model instance"""
+        """Return an initialized LLM model instance."""
 
     @abstractmethod
     def generate(self, prompt: str, **kwargs) -> str:
@@ -31,19 +33,27 @@ class BaseLLMClient(ABC):
 
     @abstractmethod
     async def agenerate(self, prompt: str, **kwargs) -> str:
-        """Run text generation asynchronously"""
+        """Run text generation asynchronously."""
 
     @abstractmethod
     def chat(self, messages: list[dict[str, str]], **kwargs) -> str:
-        """Run a chat-based generation with conversation history"""
+        """Run a chat-based generation with conversation history."""
 
     @abstractmethod
     async def achat(self, messages: list[dict[str, str]], **kwargs) -> str:
-        """Async chat interface"""
+        """Async chat interface."""
+
+    @abstractmethod
+    async def astream(self, prompt: str, **kwargs) -> AsyncIterator[str]:
+        """Stream text generation asynchronously, yielding chunks as they arrive."""
+
+    @abstractmethod
+    async def achat_stream(self, messages: list[dict[str, str]], **kwargs) -> AsyncIterator[str]:
+        """Stream chat-based generation asynchronously, yielding chunks as they arrive."""
 
     def generate_structured(self, prompt: str, schema: type[BaseModel], **kwargs) -> BaseModel:
-        """
-        Run structured output generation based on a Pydantic schema.
+        """Run structured output generation based on a Pydantic schema.
+
         Providers with JSON-mode (like OpenAI/Anthropic) should override.
         """
         raw = self.generate(prompt, **kwargs)

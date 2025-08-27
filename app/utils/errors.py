@@ -99,9 +99,7 @@ class APIError(Exception):
         self.numeric_code = numeric_code
 
 
-def Error(
-    code: ErrorCode, details: Any | None = None, message: str | None = None
-) -> APIError:
+def Error(code: ErrorCode, details: Any | None = None, message: str | None = None) -> APIError:
     """Factory to create an APIError using the registry defaults.
 
     The optional `message` overrides the default message in the registry.

@@ -28,14 +28,14 @@ class DocumentPayload(BaseModel):
         default_factory=dict, title="Metadata", description="Additional metadata for the document"
     )
 
-    @field_validator("id")
+    @field_validator("id")  # type: ignore[misc]
     @classmethod
     def validate_id(cls, v: str) -> str:
         if not v or not v.strip():
             raise ValueError("Document ID cannot be empty")
         return v.strip()
 
-    @field_validator("text", "content", mode="before")
+    @field_validator("text", "content", mode="before")  # type: ignore[misc]
     @classmethod
     def validate_content(cls, v: Any) -> str | None:
         if v is not None:
@@ -60,7 +60,7 @@ class DocumentsPayload(BaseModel):
         ..., title="Documents", description="List of documents to add"
     )
 
-    @field_validator("documents")
+    @field_validator("documents")  # type: ignore[misc]
     @classmethod
     def validate_documents_not_empty(cls, v: list[DocumentPayload]) -> list[DocumentPayload]:
         if not v:
